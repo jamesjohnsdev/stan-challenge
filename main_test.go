@@ -47,7 +47,7 @@ func TestHealth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := registerRoutes(tt.start())
+			handler := registerRoutes(tt.start(), &fakeStore{})
 			req := httptest.NewRequest(tt.method, "/health", nil)
 			rec := httptest.NewRecorder()
 

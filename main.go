@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/jamesjohnsdev/stan-challenge/internal/store"
 )
 
 func main() {
-	mux := registerRoutes(time.Now())
+	mux := registerRoutes(time.Now(), store.New())
 
 	addr := ":8080"
 	if port := os.Getenv("PORT"); port != "" {
@@ -28,20 +30,24 @@ func main() {
 	}
 }
 
-func registerRoutes(startTime time.Time) *http.ServeMux {
+func registerRoutes(startTime time.Time, st ingestStore) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /ingest", handleIngest)
+	mux.Handle("POST /ingest", ingestHandler(st))
 	mux.HandleFunc("GET /manifest/{asset_id...}", handleManifest)
 	mux.Handle("GET /health", healthHandler(startTime))
 	return mux
 }
 
-func handleIngest(w http.ResponseWriter, r *http.Request) {
+func handleManifest(w http.ResponseWriter, r *http.Request) {
 	panic("not implemented")
 }
 
-func handleManifest(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented")
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+type statusResponse struct {
+	Status string `json:"status"`
 }
 
 type healthResponse struct {
