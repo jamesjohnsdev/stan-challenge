@@ -1,0 +1,2 @@
+[commands]
+gocheck="go build ./... && go test ./... --race && go vet && gofumpt -l -w . && golangci-lint run"
