@@ -23,6 +23,12 @@ Service listens on `:8080` by default. Use `PORT` to change it:
 PORT=3000 go run .
 ```
 
+## Live Demo
+
+This project is available at `https://stan-challenge-u8p3.onrender.com/`. This is not a production ready deployment, and is likely to be inactive if no recent requests have been made.
+
+You should allow for an additional 50 seconds for startup after the first request is sent.
+
 ## Endpoints
 
 - `POST /ingest` - Store a segment
