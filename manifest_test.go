@@ -11,12 +11,6 @@ import (
 	"github.com/jamesjohnsdev/stan-challenge/internal/store"
 )
 
-// manifestStore is the slice of the store needed by manifest handler
-type manifestTestStore interface {
-	Get(ctx context.Context, assetID string) (store.Manifest, bool)
-	InsertOrReplace(ctx context.Context, seg store.Segment) bool
-}
-
 func TestManifest(t *testing.T) {
 	baseTime := time.Date(2024, 5, 1, 10, 0, 5, 0, time.UTC)
 
@@ -47,8 +41,8 @@ func TestManifest(t *testing.T) {
 			wantStatus: http.StatusOK,
 			checkBody: func(t *testing.T, body []byte) {
 				var resp struct {
-					AssetID     string `json:"asset_id"`
-					Segments    []struct {
+					AssetID  string `json:"asset_id"`
+					Segments []struct {
 						Index  int    `json:"index"`
 						CDNURL string `json:"cdn_url"`
 					} `json:"segments"`
