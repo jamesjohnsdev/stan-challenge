@@ -67,3 +67,11 @@ The server uses `net/http` timeouts (`ReadHeaderTimeout`, `ReadTimeout`, `WriteT
 - Duplicate `(asset_id, segment_index)` requests are idempotent. Identical resends do not bump `last_updated`.
 - Unknown JSON fields are tolerated. Trailing content is rejected.
 - `asset_id`, `segment_index`, and `cdn_url` are required. `segment_index` must be >= 0.
+
+## High volume burst thoughts (Scenario 7)
+
+With 200 goroutines writing to 500 assets and 50 goroutines reading manifests, memory is likely to become the main issue first. The maps keep growing, and completed assets are never removed. Each Get copies the entire segment map to create a snapshot, so heavy reads cause extra allocations and put more pressure on the GC. Locking is fine at the per-asset level because different assets do not block each other. However, multiple goroutines accessing the same asset will still compete for its mutex. Store.mu only protects the index map, which is good, but creating an asset still requires that lock.
+
+To handle more load, I'd look at sharding locks, using sync.RWMutex where it makes sense, and adding a size limit with LRU or TTL eviction for old assets. I'd also try to avoid copying the whole map on every read, possibly by using immutable snapshots with copy-on-write or versioned data. If writes come in bursts, batching or backpressure could help. A more structured store or sharded maps might also be worth considering, along with horizontal scaling if shared state becomes necessary.
+
+Before going to production, I'd add metrics for request latency, status codes and in-flight requests, as well as store metrics like asset count, segment count and lock wait time. I'd also monitor heap usage, goroutine count and GC activity. Structured logs with trace or request IDs would help with debugging, and health checks could report when the service is struggling. Rate limiting and timeouts are already handled at the HTTP level, but I'd also set up alerts for rising error rates and high p99 latency.
