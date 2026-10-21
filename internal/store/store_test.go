@@ -186,11 +186,11 @@ func TestInsertOrReplace(t *testing.T) {
 			wantLastUpdated: baseTime,
 		},
 		{
-			name:        "cancelled context stores nothing",
-			incoming:    Segment{AssetID: "a", Index: 0, CDNURL: "u0", ReceivedAt: baseTime},
-			cancelled:   true,
+			name:         "cancelled context stores nothing",
+			incoming:     Segment{AssetID: "a", Index: 0, CDNURL: "u0", ReceivedAt: baseTime},
+			cancelled:    true,
 			wantReplaced: false,
-			wantAsset:   false,
+			wantAsset:    false,
 		},
 	}
 
@@ -237,13 +237,13 @@ func TestGet(t *testing.T) {
 	t.Run("unknown asset returns not found", func(t *testing.T) {
 		s, _ := newTestStore()
 
-	m, ok := s.Get(backgroundContext(t), "show/nonexistent")
-	if ok {
-		t.Fatalf("ok = true, want false; manifest = %+v", m)
-	}
-	if len(m.Segments) != 0 {
-		t.Errorf("segments = %v, want empty/nil slice not required but asset missing means zero manifest", m.Segments)
-	}
+		m, ok := s.Get(backgroundContext(t), "show/nonexistent")
+		if ok {
+			t.Fatalf("ok = true, want false; manifest = %+v", m)
+		}
+		if len(m.Segments) != 0 {
+			t.Errorf("segments = %v, want empty/nil slice not required but asset missing means zero manifest", m.Segments)
+		}
 	})
 
 	t.Run("returns segments sorted ascending regardless of arrival order", func(t *testing.T) {
