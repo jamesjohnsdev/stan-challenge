@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jamesjohnsdev/stan-challenge/internal/store"
@@ -19,15 +23,53 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
-	fmt.Printf("listening on %s\n", addr)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Fprintln(os.Stderr, err)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		fmt.Printf("listening on %s\n", addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Fprintf(os.Stderr, "server error: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-ctx.Done()
+	fmt.Fprintln(os.Stderr, "shutdown signal received")
+
+	drainTimeout := 30 * time.Second
+	if v := os.Getenv("SHUTDOWN_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			drainTimeout = d
+		}
+	}
+	if v := os.Getenv("DRAIN_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			drainTimeout = d
+		}
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), drainTimeout)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		fmt.Fprintf(os.Stderr, "graceful shutdown failed: %v, forcing close\n", err)
+		if err := srv.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "force close failed: %v\n", err)
+			os.Exit(1)
+		}
 		os.Exit(1)
 	}
+
+	fmt.Fprintln(os.Stderr, "server stopped gracefully")
 }
 
 type serviceStore interface {
