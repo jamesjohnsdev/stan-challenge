@@ -2,9 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"log/slog"
 	"net/http"
-	"os"
 )
 
 type errorResponse struct {
@@ -19,6 +18,6 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		fmt.Fprintf(os.Stderr, "write response: %v\n", err)
+		slog.Error("write response", "error", err)
 	}
 }

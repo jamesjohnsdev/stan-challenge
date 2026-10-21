@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -27,7 +27,7 @@ func drainTimeoutFromEnv() time.Duration {
 func serveAndShutdown(ctx context.Context, srv *http.Server, addr string, drain time.Duration) error {
 	errCh := make(chan error, 1)
 	go func() {
-		fmt.Printf("listening on %s\n", addr)
+		slog.Info("listening", "addr", addr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 			return
@@ -38,27 +38,27 @@ func serveAndShutdown(ctx context.Context, srv *http.Server, addr string, drain 
 	select {
 	case err := <-errCh:
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "server error: %v\n", err)
+			slog.Error("server error", "error", err)
 			return err
 		}
 		return nil
 	case <-ctx.Done():
 	}
 
-	fmt.Fprintln(os.Stderr, "shutdown signal received")
+	slog.Info("shutdown signal received")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), drain)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		fmt.Fprintf(os.Stderr, "graceful shutdown failed: %v, forcing close\n", err)
+		slog.Error("graceful shutdown failed, forcing close", "error", err)
 		if cerr := srv.Close(); cerr != nil {
-			fmt.Fprintf(os.Stderr, "force close failed: %v\n", cerr)
+			slog.Error("force close failed", "error", cerr)
 			return cerr
 		}
 		return err
 	}
 
-	fmt.Fprintln(os.Stderr, "server stopped gracefully")
+	slog.Info("server stopped gracefully")
 	return nil
 }
