@@ -14,14 +14,13 @@ import (
 
 // fakeStore stands in for the real store (still a stub) so the handler's
 // validation and forwarding behaviour can be asserted in isolation.
-// TODO: adjust once store implemented
 type fakeStore struct {
 	added []store.Segment
 }
 
-// TODO: adjust once store implemented
-func (f *fakeStore) Add(_ context.Context, seg store.Segment) {
+func (f *fakeStore) InsertOrReplace(_ context.Context, seg store.Segment) bool {
 	f.added = append(f.added, seg)
+	return false
 }
 
 func TestIngest(t *testing.T) {
@@ -161,13 +160,13 @@ func TestIngest(t *testing.T) {
 
 			if tt.wantAdded == nil {
 				if len(st.added) != 0 {
-					t.Errorf("store.Add called %d times, want 0", len(st.added))
+					t.Errorf("InsertOrReplace called %d times, want 0", len(st.added))
 				}
 				return
 			}
 
 			if len(st.added) != 1 {
-				t.Fatalf("store.Add called %d times, want 1", len(st.added))
+				t.Fatalf("InsertOrReplace called %d times, want 1", len(st.added))
 			}
 			got := st.added[0]
 			if got.AssetID != tt.wantAdded.AssetID {
@@ -209,6 +208,6 @@ func TestIngestDuplicateRequestsBothAccepted(t *testing.T) {
 	}
 
 	if len(st.added) != 2 {
-		t.Errorf("store.Add called %d times, want 2 (dedup deferred to store)", len(st.added))
+		t.Errorf("InsertOrReplace called %d times, want 2 (dedup deferred to store)", len(st.added))
 	}
 }

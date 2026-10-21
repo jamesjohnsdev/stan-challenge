@@ -11,11 +11,12 @@ import (
 )
 
 // ingestStore is the slice of the store this handler needs. Defined on the
-// consumer side so tests can substitute a fake; *store.Store satisfies it
-// once its stubs are implemented.
-// TODO: might need to adjust once store implemented
+// consumer side so tests can substitute a fake; *store.Store satisfies it.
+//
+// The handler calls InsertOrReplace (update branch of constraint 4) and
+// ignores the bool: a re-send is still 202 Accepted either way.
 type ingestStore interface {
-	Add(ctx context.Context, seg store.Segment)
+	InsertOrReplace(ctx context.Context, seg store.Segment) bool
 }
 
 // Validation policy (decisions, see README):
@@ -78,7 +79,7 @@ func ingestHandler(st ingestStore) http.HandlerFunc {
 			receivedAt = t
 		}
 
-		st.Add(r.Context(), store.Segment{
+		st.InsertOrReplace(r.Context(), store.Segment{
 			AssetID:    req.AssetID,
 			Index:      *req.SegmentIndex,
 			CDNURL:     req.CDNURL,
