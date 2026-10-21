@@ -30,10 +30,15 @@ func main() {
 	}
 }
 
-func registerRoutes(startTime time.Time, st ingestStore) *http.ServeMux {
+type serviceStore interface {
+	ingestStore
+	manifestStore
+}
+
+func registerRoutes(startTime time.Time, st serviceStore) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("POST /ingest", ingestHandler(st))
-	mux.HandleFunc("GET /manifest/{asset_id...}", handleManifest)
+	mux.Handle("GET /manifest/{asset_id...}", manifestHandler(st))
 	mux.Handle("GET /health", healthHandler(startTime))
 	return mux
 }

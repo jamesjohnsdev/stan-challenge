@@ -18,6 +18,10 @@ type fakeStore struct {
 	added []store.Segment
 }
 
+func (f *fakeStore) Get(ctx context.Context, assetID string) (store.Manifest, bool) {
+	return store.Manifest{}, false
+}
+
 func (f *fakeStore) InsertOrReplace(_ context.Context, seg store.Segment) bool {
 	f.added = append(f.added, seg)
 	return false
